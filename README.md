@@ -1,1 +1,1 @@
-# BattleZips-Noir Frontend
+# BattleZips-V2 Frontend

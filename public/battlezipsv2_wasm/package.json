@@ -1,0 +1,12 @@
+{
+  "name": "battlezips_halo2",
+  "version": "0.2.0",
+  "files": [
+    "battlezips_halo2_bg.wasm",
+    "battlezips_halo2.js",
+    "battlezips_halo2.d.ts"
+  ],
+  "module": "battlezips_halo2.js",
+  "types": "battlezips_halo2.d.ts",
+  "sideEffects": false
+}

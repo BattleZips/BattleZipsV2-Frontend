@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { createUseStyles } from 'react-jss';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -10,13 +10,14 @@ import MainLayout from 'layouts/MainLayout';
 import { useMemo } from 'react';
 import { Game } from './types';
 import GameList from './components/GameList';
-// import { useGames } from 'hooks/useGames';
-// import { GameStatus } from 'web3/constants';
-import HomeSkeleton from './components/HomeSkeleton';
-// import { useWallet } from 'contexts/WalletContext';
-// import { playingGame } from 'web3/battleshipGame';
 import { getRandomInt } from 'utils';
-import { testBoardWasm, testShotWasm } from 'zk/wasmTest';
+import {
+  generateBoardProof,
+  generateShotProof,
+  verifyBoardProof,
+  verifyShotProof,
+} from 'zk/wasmTest';
+import toast from 'react-hot-toast';
 
 const useStyles = createUseStyles({
   content: {
@@ -57,6 +58,11 @@ const useStyles = createUseStyles({
     display: 'flex',
     flexDirection: 'column',
     width: '551px',
+  },
+  proofContainer: {
+    alignItems: 'center',
+    display: 'flex',
+    gap: '150px',
   },
   rejoin: {
     background: '#FF0055',
@@ -121,9 +127,15 @@ export default function Home(): JSX.Element {
   // const { address, chainId, provider } = useWallet();
   const navigate = useNavigate();
   const styles = useStyles();
-  const [activeGame, setActiveGame] = useState(0); // if user is already in active game or not
+  const [activeGame] = useState(0); // if user is already in active game or not
+  const [boardProof, setBoardProof] = useState(null);
   const [gameOption, setGameOption] = useState(0); // host (create) / join / join random
+  const [generatingBoardProof, setGeneratingBoardProof] = useState(false);
+  const [generatingShotProof, setGeneratingShotProof] = useState(false);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null); // selected game from active list
+  const [shotProof, setShotProof] = useState(null);
+  const [verifyingBoardProof, setVerifyingBoardProof] = useState(false);
+  const [verifyingShotProof, setVerifyingShotProof] = useState(false);
 
   const games: any[] = [];
 
@@ -188,22 +200,73 @@ export default function Home(): JSX.Element {
     }
   };
 
-  useEffect(() => {
-    // Check if game is already being played by user
-    // playing();
-    // eslint-disable-next-line
-    //}, [address, provider]);
-  });
+  const makeBoardProof = async () => {
+    setGeneratingBoardProof(true);
+    setBoardProof(await generateBoardProof());
+    setGeneratingBoardProof(false);
+  };
+
+  const makeShotProof = async () => {
+    setGeneratingShotProof(true);
+    setShotProof(await generateShotProof());
+    setGeneratingShotProof(false);
+  };
 
   return (
     <MainLayout>
       {/* {fetching && !refreshCount ? ( */}
       {true ? (
         // <HomeSkeleton />
-        <>
-          <button onClick={() => testBoardWasm()}>Run Board WASM</button>
-          <button onClick={() => testShotWasm()}>Run Shot WASM</button>
-        </>
+        <div className={styles.proofContainer}>
+          <div>
+            <button onClick={() => makeBoardProof()}>
+              {generatingBoardProof ? 'Running Board WASM' : 'Run Board WASM'}
+            </button>
+            {boardProof && (
+              <button
+                onClick={async () => {
+                  setVerifyingBoardProof(true);
+                  const verified = await verifyBoardProof(boardProof);
+                  if (verified) {
+                    toast.success('Shot proof verified');
+                  } else {
+                    toast.error('Failed to verify shot proof');
+                  }
+                  setVerifyingBoardProof(false);
+                }}
+                style={{ display: 'block', marginTop: '32px' }}
+              >
+                {verifyingBoardProof
+                  ? 'Verifying Board Proof'
+                  : 'Verify Board Proof'}
+              </button>
+            )}
+          </div>
+          <div>
+            <button onClick={() => makeShotProof()}>
+              {generatingShotProof ? 'Running Shot WASM' : 'Run Shot WASM'}
+            </button>
+            {shotProof && (
+              <button
+                onClick={async () => {
+                  setVerifyingShotProof(true);
+                  const verified = await verifyShotProof(shotProof);
+                  if (verified) {
+                    toast.success('Shot proof verified');
+                  } else {
+                    toast.error('Failed to verify shot proof');
+                  }
+                  setVerifyingShotProof(false);
+                }}
+                style={{ display: 'block', marginTop: '32px' }}
+              >
+                {verifyingShotProof
+                  ? 'Verifying Shot Proof'
+                  : 'Verify Shot Proof'}
+              </button>
+            )}
+          </div>
+        </div>
       ) : // Render rejoin button is player already in game
       activeGame > 0 ? (
         <div className={styles.isInGame}>
